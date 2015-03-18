@@ -42,6 +42,12 @@ static int fsl_mc_bus_match(struct device *dev, struct device_driver *drv)
 	if (WARN_ON(!fsl_mc_bus_exists()))
 		goto out;
 
+	/* When driver_override is set, only bind to the matching driver */
+	if (mc_dev->driver_override) {
+		found = !strcmp(mc_dev->driver_override, mc_drv->driver.name);
+		goto out;
+	}
+
 	if (!mc_drv->match_id_table)
 		goto out;
 
@@ -80,6 +86,50 @@ static int fsl_mc_bus_uevent(struct device *dev, struct kobj_uevent_env *env)
 	return 0;
 }
 
+static ssize_t driver_override_store(struct device *dev,
+				     struct device_attribute *attr,
+				     const char *buf, size_t count)
+{
+	struct fsl_mc_device *mc_dev = to_fsl_mc_device(dev);
+	const char *driver_override, *old = mc_dev->driver_override;
+	char *cp;
+
+	if (WARN_ON(dev->bus != &fsl_mc_bus_type))
+		return -EINVAL;
+
+	if (count > PATH_MAX)
+		return -EINVAL;
+
+	driver_override = kstrndup(buf, count, GFP_KERNEL);
+	if (!driver_override)
+		return -ENOMEM;
+
+	cp = strchr(driver_override, '\n');
+	if (cp)
+		*cp = '\0';
+
+	if (strlen(driver_override)) {
+		mc_dev->driver_override = driver_override;
+	} else {
+		kfree(driver_override);
+		mc_dev->driver_override = NULL;
+	}
+
+	kfree(old);
+
+	return count;
+}
+
+static ssize_t driver_override_show(struct device *dev,
+				    struct device_attribute *attr, char *buf)
+{
+	struct fsl_mc_device *mc_dev = to_fsl_mc_device(dev);
+
+	return sprintf(buf, "%s\n", mc_dev->driver_override);
+}
+
+static DEVICE_ATTR_RW(driver_override);
+
 static ssize_t rescan_store(struct device *dev,
 			    struct device_attribute *attr,
 			    const char *buf, size_t count)
@@ -100,7 +150,7 @@ static ssize_t rescan_store(struct device *dev,
 
 	if (val) {
 		mutex_lock(&root_mc_bus->scan_mutex);
-		dprc_scan_objects(root_mc_dev, &irq_count);
+		dprc_scan_objects(root_mc_dev, NULL, &irq_count);
 		mutex_unlock(&root_mc_bus->scan_mutex);
 	}
 
@@ -110,6 +160,7 @@ static ssize_t rescan_store(struct device *dev,
 static DEVICE_ATTR_WO(rescan);
 
 static struct attribute *fsl_mc_dev_attrs[] = {
+	&dev_attr_driver_override.attr,
 	&dev_attr_rescan.attr,
 	NULL,
 };
@@ -133,7 +184,7 @@ static int scan_fsl_mc_bus(struct device *dev, void *data)
 		root_mc_dev = to_fsl_mc_device(dev);
 		root_mc_bus = to_fsl_mc_bus(root_mc_dev);
 		mutex_lock(&root_mc_bus->scan_mutex);
-		dprc_scan_objects(root_mc_dev, &irq_count);
+		dprc_scan_objects(root_mc_dev, NULL, &irq_count);
 		mutex_unlock(&root_mc_bus->scan_mutex);
 	}
 
@@ -612,6 +663,8 @@ void fsl_mc_device_remove(struct fsl_mc_device *mc_dev)
 		}
 	}
 
+	kfree(mc_dev->driver_override);
+	mc_dev->driver_override = NULL;
 	if (mc_bus)
 		devm_kfree(mc_dev->dev.parent, mc_bus);
 	else
