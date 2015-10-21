@@ -356,11 +356,10 @@ static void fsl_mc_get_root_dprc(struct device *dev,
 	}
 }
 
-static int get_dprc_icid(struct fsl_mc_io *mc_io,
-			 int container_id, u16 *icid)
+static int get_dprc_attr(struct fsl_mc_io *mc_io,
+			 int container_id, struct dprc_attributes *attr)
 {
-	u16 dprc_handle;
-	struct dprc_attributes attr;
+	uint16_t dprc_handle;
 	int error;
 
 	error = dprc_open(mc_io, 0, container_id, &dprc_handle);
@@ -369,20 +368,48 @@ static int get_dprc_icid(struct fsl_mc_io *mc_io,
 		return error;
 	}
 
-	memset(&attr, 0, sizeof(attr));
-	error = dprc_get_attributes(mc_io, 0, dprc_handle, &attr);
+	memset(attr, 0, sizeof(struct dprc_attributes));
+	error = dprc_get_attributes(mc_io, 0, dprc_handle, attr);
 	if (error < 0) {
 		pr_err("dprc_get_attributes() failed: %d\n", error);
 		goto common_cleanup;
 	}
 
-	*icid = attr.icid;
 	error = 0;
 
 common_cleanup:
 	(void)dprc_close(mc_io, 0, dprc_handle);
 	return error;
 }
+
+static int get_dprc_icid(struct fsl_mc_io *mc_io,
+			 int container_id, uint16_t *icid)
+{
+	struct dprc_attributes attr;
+	int error;
+
+	error = get_dprc_attr(mc_io, container_id, &attr);
+	if (error == 0)
+		*icid = attr.icid;
+
+	return error;
+}
+
+static int get_dprc_version(struct fsl_mc_io *mc_io,
+			    int container_id, uint16_t *major, uint16_t *minor)
+{
+	struct dprc_attributes attr;
+	int error;
+
+	error = get_dprc_attr(mc_io, container_id, &attr);
+	if (error == 0) {
+		*major = attr.version.major;
+		*minor = attr.version.minor;
+	}
+
+	return error;
+}
+
 
 static int translate_mc_addr(struct fsl_mc_device *mc_dev,
 			     enum dprc_region_type mc_region_type,
@@ -860,11 +887,14 @@ static int fsl_mc_bus_probe(struct platform_device *pdev)
 		goto error_cleanup_mc_io;
 	}
 
+	error = get_dprc_version(mc_io, container_id,
+				 &obj_desc.ver_major, &obj_desc.ver_minor);
+	if (error < 0)
+		goto error_cleanup_mc_io;
+
 	obj_desc.vendor = FSL_MC_VENDOR_FREESCALE;
 	strcpy(obj_desc.type, "dprc");
 	obj_desc.id = container_id;
-	obj_desc.ver_major = DPRC_VER_MAJOR;
-	obj_desc.ver_minor = DPRC_VER_MINOR;
 	obj_desc.irq_count = 1;
 	obj_desc.region_count = 0;
 
