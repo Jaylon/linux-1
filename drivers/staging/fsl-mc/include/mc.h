@@ -15,6 +15,7 @@
 #include <linux/mod_devicetable.h>
 #include <linux/list.h>
 #include <linux/interrupt.h>
+#include <linux/platform_device.h>
 #include "../include/dprc.h"
 
 #define FSL_MC_VENDOR_FREESCALE	0x1957
@@ -226,4 +227,17 @@ void fsl_mc_free_irqs(struct fsl_mc_device *mc_dev);
 
 extern struct bus_type fsl_mc_bus_type;
 
+/**
+  * is_root_dprc - tell whether dev is root dprc or not.
+  * root dprc's parent is a platform device,
+  * that platform device's bus type is platform_bus_type.
+  * @dev: MC object device
+  * return 1 on root dprc, 0 otherwise
+  */
+static inline bool is_root_dprc(struct device *dev)
+{
+	return ((to_fsl_mc_device(dev)->flags & FSL_MC_IS_DPRC) &&
+		((dev)->bus == &fsl_mc_bus_type) &&
+		((dev)->parent->bus == &platform_bus_type));
+}
 #endif /* _FSL_MC_H_ */
