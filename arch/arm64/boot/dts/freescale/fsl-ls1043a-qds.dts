@@ -48,75 +48,20 @@
 /include/ "fsl-ls1043a.dtsi"
 
 / {
-	model = "LS1043A RDB Board";
-};
+	model = "LS1043A QDS Board";
+	compatible = "fsl,ls1043a-qds", "fsl,ls1043a";
 
-&i2c0 {
-	status = "okay";
-	ina220@40 {
-		compatible = "ti,ina220";
-		reg = <0x40>;
-		shunt-resistor = <1000>;
-	};
-	adt7461a@4c {
-		compatible = "adi,adt7461";
-		reg = <0x4c>;
-	};
-	eeprom@52 {
-		compatible = "at24,24c512";
-		reg = <0x52>;
-	};
-	eeprom@53 {
-		compatible = "at24,24c512";
-		reg = <0x53>;
-	};
-	rtc@68 {
-		compatible = "pericom,pt7c4338";
-		reg = <0x68>;
-	};
-};
-
-&ifc {
-	status = "okay";
-	#address-cells = <2>;
-	#size-cells = <1>;
-	/* NOR, NAND Flashes and FPGA on board */
-	ranges = <0x0 0x0 0x0 0x60000000 0x08000000
-		  0x1 0x0 0x0 0x7e800000 0x00010000
-		  0x2 0x0 0x0 0x7fb00000 0x00000100>;
-
-		nor@0,0 {
-			compatible = "cfi-flash";
-			#address-cells = <1>;
-			#size-cells = <1>;
-			reg = <0x0 0x0 0x8000000>;
-			bank-width = <2>;
-			device-width = <1>;
-		};
-
-		nand@1,0 {
-			compatible = "fsl,ifc-nand";
-			#address-cells = <1>;
-			#size-cells = <1>;
-			reg = <0x1 0x0 0x10000>;
-		};
-
-		cpld: board-control@2,0 {
-			compatible = "fsl,ls1043ardb-cpld";
-			reg = <0x2 0x0 0x0000100>;
-		};
-};
-
-&dspi0 {
-	bus-num = <0>;
-	status = "okay";
-
-	flash@0 {
-		#address-cells = <1>;
-		#size-cells = <1>;
-		compatible = "n25q128a13", "jedec,spi-nor";  /* 16MB */
-		reg = <0>;
-		spi-max-frequency = <1000000>; /* input clock */
+	aliases {
+		gpio0 = &gpio1;
+		gpio1 = &gpio2;
+		gpio2 = &gpio3;
+		gpio3 = &gpio4;
+		serial0 = &lpuart0;
+		serial1 = &lpuart1;
+		serial2 = &lpuart2;
+		serial3 = &lpuart3;
+		serial4 = &lpuart4;
+		serial5 = &lpuart5;
 	};
 };
 
@@ -125,5 +70,98 @@
 };
 
 &duart1 {
+	status = "okay";
+};
+
+&ifc {
+	#address-cells = <2>;
+	#size-cells = <1>;
+	/* NOR, NAND Flashes and FPGA on board */
+	ranges = <0x0 0x0 0x0 0x60000000 0x08000000
+		  0x1 0x0 0x0 0x7e800000 0x00010000
+		  0x2 0x0 0x0 0x7fb00000 0x00000100>;
+	status = "okay";
+
+	nor@0,0 {
+		compatible = "cfi-flash";
+		reg = <0x0 0x0 0x8000000>;
+		bank-width = <2>;
+		device-width = <1>;
+	};
+
+	nand@1,0 {
+		compatible = "fsl,ifc-nand";
+		reg = <0x1 0x0 0x10000>;
+	};
+
+	fpga: board-control@2,0 {
+		compatible = "fsl,ls1043aqds-fpga", "fsl,fpga-qixis";
+		reg = <0x2 0x0 0x0000100>;
+	};
+};
+
+&i2c0 {
+	status = "okay";
+	pca9547@77 {
+		compatible = "nxp,pca9547";
+		reg = <0x77>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		i2c@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x0>;
+
+			rtc@68 {
+				compatible = "dallas,ds3232";
+				reg = <0x68>;
+				/* IRQ10_B */
+				interrupts = <0 150 0x4>;
+			};
+		};
+
+		i2c@2 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x2>;
+
+			ina220@40 {
+				compatible = "ti,ina220";
+				reg = <0x40>;
+				shunt-resistor = <1000>;
+			};
+
+			ina220@41 {
+				compatible = "ti,ina220";
+				reg = <0x41>;
+				shunt-resistor = <1000>;
+			};
+		};
+
+		i2c@3 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x3>;
+
+			eeprom@56 {
+				compatible = "atmel,24c512";
+				reg = <0x56>;
+			};
+
+			eeprom@57 {
+				compatible = "atmel,24c512";
+				reg = <0x57>;
+			};
+
+			temp-sensor@4c {
+				compatible = "adi,adt7461a";
+				reg = <0x4c>;
+			};
+		};
+	};
+};
+
+&lpuart0 {
 	status = "okay";
 };
