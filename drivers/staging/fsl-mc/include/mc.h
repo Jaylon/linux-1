@@ -15,6 +15,7 @@
 #include <linux/mod_devicetable.h>
 #include <linux/list.h>
 #include <linux/interrupt.h>
+#include <linux/platform_device.h>
 #include "../include/dprc.h"
 
 #define FSL_MC_VENDOR_FREESCALE	0x1957
@@ -146,6 +147,7 @@ struct fsl_mc_device_irq {
  * @regions: pointer to array of MMIO region entries
  * @irqs: pointer to array of pointers to interrupts allocated to this device
  * @resource: generic resource associated with this MC object device, if any.
+ * @driver_override: Driver name to force a match
  *
  * Generic device object for MC object devices that are "attached" to a
  * MC bus.
@@ -178,6 +180,7 @@ struct fsl_mc_device {
 	struct resource *regions;
 	struct fsl_mc_device_irq **irqs;
 	struct fsl_mc_resource *resource;
+	const char *driver_override;
 };
 
 #define to_fsl_mc_device(_dev) \
@@ -206,6 +209,9 @@ void fsl_mc_driver_unregister(struct fsl_mc_driver *driver);
 
 bool fsl_mc_bus_exists(void);
 
+void fsl_mc_get_root_dprc(struct device *dev,
+                                 struct device **root_dprc_dev);
+
 int __must_check fsl_mc_portal_allocate(struct fsl_mc_device *mc_dev,
 					u16 mc_io_flags,
 					struct fsl_mc_io **new_mc_io);
@@ -226,4 +232,17 @@ void fsl_mc_free_irqs(struct fsl_mc_device *mc_dev);
 
 extern struct bus_type fsl_mc_bus_type;
 
+/**
+  * is_root_dprc - tell whether dev is root dprc or not.
+  * root dprc's parent is a platform device,
+  * that platform device's bus type is platform_bus_type.
+  * @dev: MC object device
+  * return 1 on root dprc, 0 otherwise
+  */
+static inline bool is_root_dprc(struct device *dev)
+{
+	return ((to_fsl_mc_device(dev)->flags & FSL_MC_IS_DPRC) &&
+		((dev)->bus == &fsl_mc_bus_type) &&
+		((dev)->parent->bus == &platform_bus_type));
+}
 #endif /* _FSL_MC_H_ */

@@ -306,9 +306,21 @@ int __must_check fsl_mc_portal_allocate(struct fsl_mc_device *mc_dev,
 	if (error < 0)
 		return error;
 
+	error = -EINVAL;
 	dpmcp_dev = resource->data;
 	if (WARN_ON(!dpmcp_dev))
 		goto error_cleanup_resource;
+
+	if (dpmcp_dev->obj_desc.ver_major < DPMCP_MIN_VER_MAJOR ||
+	    (dpmcp_dev->obj_desc.ver_major == DPMCP_MIN_VER_MAJOR &&
+	     dpmcp_dev->obj_desc.ver_minor < DPMCP_MIN_VER_MINOR)) {
+		dev_err(&dpmcp_dev->dev,
+			"ERROR: Version %d.%d of DPMCP not supported.\n",
+			dpmcp_dev->obj_desc.ver_major,
+			dpmcp_dev->obj_desc.ver_minor);
+		error = -ENOTSUPP;
+		goto error_cleanup_resource;
+	}
 
 	if (WARN_ON(dpmcp_dev->obj_desc.region_count == 0))
 		goto error_cleanup_resource;
@@ -722,20 +734,14 @@ static const struct fsl_mc_device_match_id match_id_table[] = {
 	{
 	 .vendor = FSL_MC_VENDOR_FREESCALE,
 	 .obj_type = "dpbp",
-	 .ver_major = DPBP_VER_MAJOR,
-	 .ver_minor = DPBP_VER_MINOR
 	},
 	{
 	 .vendor = FSL_MC_VENDOR_FREESCALE,
 	 .obj_type = "dpmcp",
-	 .ver_major = DPMCP_VER_MAJOR,
-	 .ver_minor = DPMCP_VER_MINOR
 	},
 	{
 	 .vendor = FSL_MC_VENDOR_FREESCALE,
 	 .obj_type = "dpcon",
-	 .ver_major = DPCON_VER_MAJOR,
-	 .ver_minor = DPCON_VER_MINOR
 	},
 	{.vendor = 0x0},
 };
