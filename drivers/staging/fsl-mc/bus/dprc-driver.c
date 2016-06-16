@@ -807,6 +807,11 @@ static int dprc_remove(struct fsl_mc_device *mc_dev)
 		dev_set_msi_domain(&mc_dev->dev, NULL);
 	}
 
+	if (!is_root_dprc(&mc_dev->dev)) {
+		fsl_destroy_mc_io(mc_dev->mc_io);
+		mc_dev->mc_io = NULL;
+	}
+
 	dev_info(&mc_dev->dev, "DPRC device unbound from driver");
 	return 0;
 }
