@@ -51,7 +51,7 @@
 	#size-cells = <2>;
 
 	cpus {
-		#address-cells = <2>;
+		#address-cells = <1>;
 		#size-cells = <0>;
 
 		/*
@@ -65,57 +65,81 @@
 		cpu@0 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a57";
-			reg = <0x0 0x0>;
+			reg = <0x0>;
 			clocks = <&clockgen 1 0>;
+			next-level-cache = <&cluster0_l2>;
 		};
 
 		cpu@1 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a57";
-			reg = <0x0 0x1>;
+			reg = <0x1>;
 			clocks = <&clockgen 1 0>;
+			next-level-cache = <&cluster0_l2>;
 		};
 
 		cpu@100 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a57";
-			reg = <0x0 0x100>;
+			reg = <0x100>;
 			clocks = <&clockgen 1 1>;
+			next-level-cache = <&cluster1_l2>;
 		};
 
 		cpu@101 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a57";
-			reg = <0x0 0x101>;
+			reg = <0x101>;
 			clocks = <&clockgen 1 1>;
+			next-level-cache = <&cluster1_l2>;
 		};
 
 		cpu@200 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a57";
-			reg = <0x0 0x200>;
+			reg = <0x200>;
 			clocks = <&clockgen 1 2>;
+			next-level-cache = <&cluster2_l2>;
 		};
 
 		cpu@201 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a57";
-			reg = <0x0 0x201>;
+			reg = <0x201>;
 			clocks = <&clockgen 1 2>;
+			next-level-cache = <&cluster2_l2>;
 		};
 
 		cpu@300 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a57";
-			reg = <0x0 0x300>;
+			reg = <0x300>;
 			clocks = <&clockgen 1 3>;
+			next-level-cache = <&cluster3_l2>;
 		};
 
 		cpu@301 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a57";
-			reg = <0x0 0x301>;
+			reg = <0x301>;
 			clocks = <&clockgen 1 3>;
+			next-level-cache = <&cluster3_l2>;
+		};
+
+		cluster0_l2: l2-cache0 {
+			compatible = "cache";
+		};
+
+		cluster1_l2: l2-cache1 {
+			compatible = "cache";
+		};
+
+		cluster2_l2: l2-cache2 {
+			compatible = "cache";
+		};
+
+		cluster3_l2: l2-cache3 {
+			compatible = "cache";
 		};
 	};
 
@@ -269,6 +293,7 @@
 			msi-parent = <&its>;
 			#address-cells = <3>;
 			#size-cells = <1>;
+			#stream-id-cells = <2>;
 
 			/*
 			 * Region type 0x0 - MC portals
@@ -484,6 +509,28 @@
 			#interrupt-cells = <2>;
 		};
 
+		/* TODO: WRIOP (CCSR?) */
+		emdio1: mdio@0x8B96000 { /* WRIOP0: 0x8B8_0000, E-MDIO1: 0x1_6000 */
+			compatible = "fsl,fman-memac-mdio";
+			reg = <0x0 0x8B96000 0x0 0x1000>;
+			device_type = "mdio";			/* TODO: is this necessary? */
+			little-endian;	/* force the driver in LE mode */
+
+			/* Not necessary on the QDS, but needed on the RDB */
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		emdio2: mdio@0x8B97000 { /* WRIOP0: 0x8B8_0000, E-MDIO2: 0x1_7000 */
+			compatible = "fsl,fman-memac-mdio";
+			reg = <0x0 0x8B97000 0x0 0x1000>;
+			device_type = "mdio";			/* TODO: is this necessary? */
+			little-endian;	/* force the driver in LE mode */
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
 		i2c0: i2c@2000000 {
 			status = "disabled";
 			compatible = "fsl,vf610-i2c";
@@ -673,6 +720,7 @@
 			interrupts = <0 80 0x4>; /* Level high type */
 			dr_mode = "host";
 			snps,quirk-frame-length-adjustment = <0x20>;
+			snps,dis_rxdet_inp3_quirk;
 		};
 
 		usb1: usb3@3110000 {
@@ -682,6 +730,7 @@
 			interrupts = <0 81 0x4>; /* Level high type */
 			dr_mode = "host";
 			snps,quirk-frame-length-adjustment = <0x20>;
+			snps,dis_rxdet_inp3_quirk;
 		};
 
 		ccn@4000000 {
